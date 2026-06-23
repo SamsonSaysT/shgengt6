@@ -6,21 +6,27 @@
   <title>GTA VI Countdown</title>
   <style>
     @font-face {
-      font-family: "PricedownOBS";
+      font-family: "PricedownCustom";
       src: url("Pricedown Bl.otf") format("opentype");
+      font-weight: normal;
+      font-style: normal;
       font-display: block;
     }
 
     :root {
       --text-color: #ffffff;
-      --title-size: 96px;
-      --timer-size: 112px;
-      --line-gap: 24px;
-      --fit-width: 94vw;
-      --fit-height: 88vh;
-      --shadow: 0 0 0 transparent;
       --stroke-size: 0px;
       --stroke-color: #000000;
+      --shadow: 0 0 0 transparent;
+
+      /* Edit these if you want the title/timer relationship different. */
+      --title-size: 92px;
+      --timer-size: 108px;
+      --line-gap: 18px;
+      --side-padding: 72px;
+      --top-padding: 48px;
+      --bottom-padding: 48px;
+      --scale: 1;
     }
 
     html,
@@ -28,118 +34,201 @@
       width: 100%;
       height: 100%;
       margin: 0;
-      padding: 0;
-      background: transparent;
       overflow: hidden;
+      background: transparent !important;
     }
 
     body {
-      font-family: "PricedownOBS", Impact, Haettenschweiler, "Arial Black", sans-serif;
+      display: grid;
+      place-items: center;
+      font-family: "PricedownCustom", Impact, Haettenschweiler, "Arial Black", sans-serif;
+      color: var(--text-color);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
     }
 
     #stage {
-      position: fixed;
-      inset: 0;
+      position: relative;
       width: 100vw;
       height: 100vh;
-      background: transparent;
-      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background: transparent !important;
     }
 
-    #countdown-wrap {
+    /* The text is centered once, then scaled as a whole from a fixed template.
+       That keeps both lines locked in place instead of resizing on every tick. */
+    #fitLayer {
       position: absolute;
       left: 50%;
       top: 50%;
+      transform: translate(-50%, -50%) scale(var(--scale));
       transform-origin: center center;
-      text-align: center;
-      color: var(--text-color);
-      text-shadow: var(--shadow);
-      -webkit-text-stroke: var(--stroke-size) var(--stroke-color);
-      white-space: nowrap;
       width: max-content;
-      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
       user-select: none;
       pointer-events: none;
+      padding: var(--top-padding) var(--side-padding) var(--bottom-padding);
+      box-sizing: border-box;
     }
 
-    #title {
+    .title,
+    .timer {
+      font-weight: normal;
+      line-height: 0.9;
+      letter-spacing: 0.035em;
+      color: var(--text-color);
+      -webkit-text-stroke: var(--stroke-size) var(--stroke-color);
+      text-shadow: var(--shadow);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "kern" 0;
+    }
+
+    .title {
       font-size: var(--title-size);
-      line-height: 0.95;
-      margin-bottom: var(--line-gap);
-      letter-spacing: 0.015em;
+      margin: 0 0 var(--line-gap);
     }
 
-    #timer {
+    .timer {
       font-size: var(--timer-size);
-      line-height: 0.95;
-      letter-spacing: 0.015em;
+      margin: 0;
+      display: inline-grid;
+      grid-auto-flow: column;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.22em;
+    }
+
+    /* Fixed number slots stop the line from jumping when 9H becomes 10H, etc. */
+    .num {
+      display: inline-block;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1, "kern" 0;
+    }
+
+    #days { width: 3.25ch; }
+    #hours { width: 2.15ch; }
+    #minutes { width: 2.15ch; }
+    #seconds { width: 2.15ch; }
+
+    .unit {
+      display: inline-block;
+    }
+
+    /* Hidden measuring layer uses the longest expected text, not the live countdown. */
+    #measure {
+      position: absolute;
+      visibility: hidden;
+      pointer-events: none;
+      left: -99999px;
+      top: -99999px;
+      width: max-content;
+      text-align: center;
+      white-space: nowrap;
+      padding: var(--top-padding) var(--side-padding) var(--bottom-padding);
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
-  <div id="stage" aria-hidden="true">
-    <div id="countdown-wrap">
-      <div id="title">GTA VI Countdown</div>
-      <div id="timer">Loading...</div>
-    </div>
-  </div>
+  <main id="stage" aria-label="GTA VI countdown timer">
+    <section id="fitLayer">
+      <h1 class="title">GTA VI Countdown</h1>
+      <p class="timer" aria-live="off">
+        <span id="days" class="num">148</span><span class="unit">Days</span>
+        <span id="hours" class="num">5</span><span class="unit">H</span>
+        <span id="minutes" class="num">03</span><span class="unit">M</span>
+        <span id="seconds" class="num">00</span><span class="unit">S</span>
+      </p>
+    </section>
+
+    <section id="measure" aria-hidden="true">
+      <h1 class="title">GTA VI Countdown</h1>
+      <p class="timer">
+        <span class="num" style="width:3.25ch">888</span><span class="unit">Days</span>
+        <span class="num" style="width:2.15ch">23</span><span class="unit">H</span>
+        <span class="num" style="width:2.15ch">59</span><span class="unit">M</span>
+        <span class="num" style="width:2.15ch">59</span><span class="unit">S</span>
+      </p>
+    </section>
+  </main>
 
   <script>
-    // Target: November 18, 2026 at 11:59 PM Eastern time.
-    // Detroit / Eastern is UTC-5 on this date.
+    // Countdown target: Nov 18, 2026 at 11:59 PM Eastern / Detroit time.
     const TARGET_TIME = new Date("2026-11-18T23:59:00-05:00").getTime();
 
-    const stage = document.getElementById("stage");
-    const wrap = document.getElementById("countdown-wrap");
-    const timer = document.getElementById("timer");
+    // Set to false if you want exactly: "148 Days 5H 03M"
+    const SHOW_SECONDS = true;
 
-    function pad2(value) {
+    const els = {
+      days: document.getElementById("days"),
+      hours: document.getElementById("hours"),
+      minutes: document.getElementById("minutes"),
+      seconds: document.getElementById("seconds"),
+      fitLayer: document.getElementById("fitLayer"),
+      measure: document.getElementById("measure")
+    };
+
+    function twoDigits(value) {
       return String(value).padStart(2, "0");
     }
 
     function updateCountdown() {
       const now = Date.now();
-      const remainingMs = Math.max(0, TARGET_TIME - now);
-      const totalSeconds = Math.floor(remainingMs / 1000);
+      const remaining = Math.max(0, TARGET_TIME - now);
 
+      const totalSeconds = Math.floor(remaining / 1000);
       const days = Math.floor(totalSeconds / 86400);
       const hours = Math.floor((totalSeconds % 86400) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
 
-      const dayLabel = days === 1 ? "Day" : "Days";
-      timer.textContent = `${days} ${dayLabel} ${hours}:${pad2(minutes)}:${pad2(seconds)}`;
-
-      fitCountdown();
+      els.days.textContent = String(days);
+      els.hours.textContent = String(hours);       // no leading zero on hours
+      els.minutes.textContent = twoDigits(minutes); // leading zero on minutes
+      els.seconds.textContent = twoDigits(seconds); // leading zero on seconds
     }
 
-    function fitCountdown() {
-      // Reset transform before measuring the natural content size.
-      wrap.style.transform = "translate(-50%, -50%) scale(1)";
+    function setSecondsVisibility() {
+      const secondsNum = els.seconds;
+      const secondsUnit = secondsNum.nextElementSibling;
+      secondsNum.style.display = SHOW_SECONDS ? "inline-block" : "none";
+      secondsUnit.style.display = SHOW_SECONDS ? "inline-block" : "none";
 
-      const availableWidth = stage.clientWidth * 0.94;
-      const availableHeight = stage.clientHeight * 0.88;
-      const contentWidth = wrap.scrollWidth;
-      const contentHeight = wrap.scrollHeight;
-
-      if (!contentWidth || !contentHeight || !availableWidth || !availableHeight) return;
-
-      const scale = Math.min(availableWidth / contentWidth, availableHeight / contentHeight, 1);
-      wrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      const measureTimer = els.measure.querySelector(".timer");
+      const measureParts = measureTimer.children;
+      measureParts[6].style.display = SHOW_SECONDS ? "inline-block" : "none";
+      measureParts[7].style.display = SHOW_SECONDS ? "inline-block" : "none";
     }
 
-    window.addEventListener("resize", fitCountdown);
-
-    // Re-fit after the uploaded font finishes loading.
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => {
-        updateCountdown();
-        fitCountdown();
-      });
+    function fitToWindow() {
+      const margin = 0.96;
+      const naturalWidth = els.measure.offsetWidth;
+      const naturalHeight = els.measure.offsetHeight;
+      const availableWidth = window.innerWidth * margin;
+      const availableHeight = window.innerHeight * margin;
+      const scale = Math.min(availableWidth / naturalWidth, availableHeight / naturalHeight, 1);
+      document.documentElement.style.setProperty("--scale", String(scale));
     }
 
-    updateCountdown();
-    setInterval(updateCountdown, 250);
+    async function init() {
+      setSecondsVisibility();
+      updateCountdown();
+
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (e) {}
+      }
+
+      fitToWindow();
+      updateCountdown();
+      setInterval(updateCountdown, 250);
+    }
+
+    window.addEventListener("resize", fitToWindow);
+    window.addEventListener("orientationchange", fitToWindow);
+    init();
   </script>
 </body>
 </html>
