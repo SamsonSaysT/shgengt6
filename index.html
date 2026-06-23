@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OBS Countdown Timer</title>
-
+  <title>GTA VI Countdown</title>
   <style>
     @font-face {
       font-family: "PricedownOBS";
-      src: url("./Pricedown Bl.otf") format("opentype");
-      font-weight: normal;
-      font-style: normal;
+      src: url("Pricedown Bl.otf") format("opentype");
       font-display: block;
     }
 
     :root {
       --text-color: #ffffff;
-      --base-font-size: 120px;
-      --letter-spacing: 0.035em;
-      --safe-padding: 16px;
-      --text-stroke: 0px #000000;
-      --shadow: none;
+      --title-size: 96px;
+      --timer-size: 112px;
+      --line-gap: 24px;
+      --fit-width: 94vw;
+      --fit-height: 88vh;
+      --shadow: 0 0 0 transparent;
+      --stroke-size: 0px;
+      --stroke-color: #000000;
     }
 
     html,
@@ -34,112 +34,112 @@
     }
 
     body {
-      background-color: transparent;
+      font-family: "PricedownOBS", Impact, Haettenschweiler, "Arial Black", sans-serif;
     }
 
     #stage {
       position: fixed;
       inset: 0;
-      box-sizing: border-box;
-      padding: var(--safe-padding);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 100vw;
+      height: 100vh;
       background: transparent;
       overflow: hidden;
     }
 
-    #timer {
-      font-family: "PricedownOBS", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-      font-size: var(--base-font-size);
-      line-height: 0.85;
-      letter-spacing: var(--letter-spacing);
-      color: var(--text-color);
-      white-space: nowrap;
-      text-align: center;
-      text-transform: uppercase;
+    #countdown-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
       transform-origin: center center;
-      -webkit-text-stroke: var(--text-stroke);
+      text-align: center;
+      color: var(--text-color);
       text-shadow: var(--shadow);
-      will-change: transform;
+      -webkit-text-stroke: var(--stroke-size) var(--stroke-color);
+      white-space: nowrap;
+      width: max-content;
+      line-height: 1;
       user-select: none;
+      pointer-events: none;
+    }
+
+    #title {
+      font-size: var(--title-size);
+      line-height: 0.95;
+      margin-bottom: var(--line-gap);
+      letter-spacing: 0.015em;
+    }
+
+    #timer {
+      font-size: var(--timer-size);
+      line-height: 0.95;
+      letter-spacing: 0.015em;
     }
   </style>
 </head>
-
 <body>
-  <main id="stage" aria-label="Countdown timer">
-    <div id="timer">Loading countdown...</div>
-  </main>
+  <div id="stage" aria-hidden="true">
+    <div id="countdown-wrap">
+      <div id="title">GTA VI Countdown</div>
+      <div id="timer">Loading...</div>
+    </div>
+  </div>
 
   <script>
-    // Countdown target:
-    // November 18, 2026 at 11:59 PM Eastern/Detroit time.
+    // Target: November 18, 2026 at 11:59 PM Eastern time.
+    // Detroit / Eastern is UTC-5 on this date.
     const TARGET_TIME = new Date("2026-11-18T23:59:00-05:00").getTime();
 
     const stage = document.getElementById("stage");
+    const wrap = document.getElementById("countdown-wrap");
     const timer = document.getElementById("timer");
 
-    function pad2(number) {
-      return String(number).padStart(2, "0");
+    function pad2(value) {
+      return String(value).padStart(2, "0");
     }
 
-    function getCountdownText() {
+    function updateCountdown() {
       const now = Date.now();
-      let remaining = TARGET_TIME - now;
+      const remainingMs = Math.max(0, TARGET_TIME - now);
+      const totalSeconds = Math.floor(remainingMs / 1000);
 
-      if (remaining <= 0) {
-        return "00 DAYS 00 HOURS 00 MINUTES 00 SECONDS";
-      }
-
-      const totalSeconds = Math.floor(remaining / 1000);
       const days = Math.floor(totalSeconds / 86400);
       const hours = Math.floor((totalSeconds % 86400) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
 
-      return `${days} DAYS ${pad2(hours)} HOURS ${pad2(minutes)} MINUTES ${pad2(seconds)} SECONDS`;
+      const dayLabel = days === 1 ? "Day" : "Days";
+      timer.textContent = `${days} ${dayLabel} ${hours}:${pad2(minutes)}:${pad2(seconds)}`;
+
+      fitCountdown();
     }
 
-    function fitTimerToWindow() {
-      // Reset first so scrollWidth/scrollHeight measure the natural text size.
-      timer.style.transform = "scale(1)";
+    function fitCountdown() {
+      // Reset transform before measuring the natural content size.
+      wrap.style.transform = "translate(-50%, -50%) scale(1)";
 
-      const stageRect = stage.getBoundingClientRect();
-      const availableWidth = Math.max(1, stageRect.width - 2);
-      const availableHeight = Math.max(1, stageRect.height - 2);
+      const availableWidth = stage.clientWidth * 0.94;
+      const availableHeight = stage.clientHeight * 0.88;
+      const contentWidth = wrap.scrollWidth;
+      const contentHeight = wrap.scrollHeight;
 
-      const textWidth = Math.max(1, timer.scrollWidth);
-      const textHeight = Math.max(1, timer.scrollHeight);
+      if (!contentWidth || !contentHeight || !availableWidth || !availableHeight) return;
 
-      const scale = Math.min(
-        availableWidth / textWidth,
-        availableHeight / textHeight
-      );
-
-      timer.style.transform = `scale(${scale})`;
+      const scale = Math.min(availableWidth / contentWidth, availableHeight / contentHeight, 1);
+      wrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
     }
 
-    function updateTimer() {
-      timer.textContent = getCountdownText();
-      requestAnimationFrame(fitTimerToWindow);
-    }
+    window.addEventListener("resize", fitCountdown);
 
-    updateTimer();
-    setInterval(updateTimer, 250);
-
-    window.addEventListener("resize", fitTimerToWindow);
-
-    if ("ResizeObserver" in window) {
-      new ResizeObserver(fitTimerToWindow).observe(stage);
-    }
-
+    // Re-fit after the uploaded font finishes loading.
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
-        updateTimer();
-        fitTimerToWindow();
+        updateCountdown();
+        fitCountdown();
       });
     }
+
+    updateCountdown();
+    setInterval(updateCountdown, 250);
   </script>
 </body>
 </html>
