@@ -19,13 +19,20 @@
       --stroke-color: #000000;
       --shadow: 0 0 0 transparent;
 
-      /* Edit these if you want the title/timer relationship different. */
+      /* Main sizing controls */
       --title-size: 92px;
       --timer-size: 108px;
       --line-gap: 18px;
       --side-padding: 72px;
       --top-padding: 48px;
       --bottom-padding: 48px;
+
+      /* Space BETWEEN groups: 148 Days | 5H | 03M | 09S */
+      --group-gap: 0.46em;
+
+      /* Space only between number and the word Days */
+      --days-gap: 0.14em;
+
       --scale: 1;
     }
 
@@ -56,8 +63,6 @@
       background: transparent !important;
     }
 
-    /* The text is centered once, then scaled as a whole from a fixed template.
-       That keeps both lines locked in place instead of resizing on every tick. */
     #fitLayer {
       position: absolute;
       left: 50%;
@@ -93,11 +98,20 @@
     .timer {
       font-size: var(--timer-size);
       margin: 0;
-      display: inline-grid;
-      grid-auto-flow: column;
+      display: inline-flex;
       align-items: baseline;
       justify-content: center;
-      gap: 0.22em;
+      gap: var(--group-gap);
+    }
+
+    .time-group {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0;
+    }
+
+    .time-group.days-group {
+      gap: var(--days-gap);
     }
 
     /* Fixed number slots stop the line from jumping when 9H becomes 10H, etc. */
@@ -117,7 +131,6 @@
       display: inline-block;
     }
 
-    /* Hidden measuring layer uses the longest expected text, not the live countdown. */
     #measure {
       position: absolute;
       visibility: hidden;
@@ -137,20 +150,20 @@
     <section id="fitLayer">
       <h1 class="title">GTA VI Countdown</h1>
       <p class="timer" aria-live="off">
-        <span id="days" class="num">148</span><span class="unit">Days</span>
-        <span id="hours" class="num">5</span><span class="unit">H</span>
-        <span id="minutes" class="num">03</span><span class="unit">M</span>
-        <span id="seconds" class="num">00</span><span class="unit">S</span>
+        <span class="time-group days-group"><span id="days" class="num">148</span><span class="unit">Days</span></span>
+        <span class="time-group"><span id="hours" class="num">5</span><span class="unit">H</span></span>
+        <span class="time-group"><span id="minutes" class="num">03</span><span class="unit">M</span></span>
+        <span id="secondsGroup" class="time-group"><span id="seconds" class="num">00</span><span class="unit">S</span></span>
       </p>
     </section>
 
     <section id="measure" aria-hidden="true">
       <h1 class="title">GTA VI Countdown</h1>
       <p class="timer">
-        <span class="num" style="width:3.25ch">888</span><span class="unit">Days</span>
-        <span class="num" style="width:2.15ch">23</span><span class="unit">H</span>
-        <span class="num" style="width:2.15ch">59</span><span class="unit">M</span>
-        <span class="num" style="width:2.15ch">59</span><span class="unit">S</span>
+        <span class="time-group days-group"><span class="num" style="width:3.25ch">888</span><span class="unit">Days</span></span>
+        <span class="time-group"><span class="num" style="width:2.15ch">23</span><span class="unit">H</span></span>
+        <span class="time-group"><span class="num" style="width:2.15ch">59</span><span class="unit">M</span></span>
+        <span class="time-group measure-seconds-group"><span class="num" style="width:2.15ch">59</span><span class="unit">S</span></span>
       </p>
     </section>
   </main>
@@ -167,6 +180,7 @@
       hours: document.getElementById("hours"),
       minutes: document.getElementById("minutes"),
       seconds: document.getElementById("seconds"),
+      secondsGroup: document.getElementById("secondsGroup"),
       fitLayer: document.getElementById("fitLayer"),
       measure: document.getElementById("measure")
     };
@@ -186,21 +200,15 @@
       const seconds = totalSeconds % 60;
 
       els.days.textContent = String(days);
-      els.hours.textContent = String(hours);       // no leading zero on hours
+      els.hours.textContent = String(hours);        // no leading zero on hours
       els.minutes.textContent = twoDigits(minutes); // leading zero on minutes
       els.seconds.textContent = twoDigits(seconds); // leading zero on seconds
     }
 
     function setSecondsVisibility() {
-      const secondsNum = els.seconds;
-      const secondsUnit = secondsNum.nextElementSibling;
-      secondsNum.style.display = SHOW_SECONDS ? "inline-block" : "none";
-      secondsUnit.style.display = SHOW_SECONDS ? "inline-block" : "none";
-
-      const measureTimer = els.measure.querySelector(".timer");
-      const measureParts = measureTimer.children;
-      measureParts[6].style.display = SHOW_SECONDS ? "inline-block" : "none";
-      measureParts[7].style.display = SHOW_SECONDS ? "inline-block" : "none";
+      els.secondsGroup.style.display = SHOW_SECONDS ? "inline-flex" : "none";
+      const measureSecondsGroup = els.measure.querySelector(".measure-seconds-group");
+      measureSecondsGroup.style.display = SHOW_SECONDS ? "inline-flex" : "none";
     }
 
     function fitToWindow() {
