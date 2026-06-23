@@ -7,7 +7,7 @@
 
   <style>
     @font-face {
-      font-family: "Pricedown";
+      font-family: "PricedownOBS";
       src: url("./Pricedown Bl.otf") format("opentype");
       font-weight: normal;
       font-style: normal;
@@ -16,10 +16,11 @@
 
     :root {
       --text-color: #ffffff;
-      --font-size: 86px;
-      --letter-spacing: 0.04em;
+      --base-font-size: 120px;
+      --letter-spacing: 0.035em;
+      --safe-padding: 16px;
       --text-stroke: 0px #000000;
-      --shadow: 0 0 0 transparent;
+      --shadow: none;
     }
 
     html,
@@ -28,58 +29,67 @@
       height: 100%;
       margin: 0;
       padding: 0;
+      background: transparent;
       overflow: hidden;
-      background: transparent !important;
     }
 
     body {
+      background-color: transparent;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      box-sizing: border-box;
+      padding: var(--safe-padding);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: "Pricedown", Impact, Haettenschweiler, "Arial Black", sans-serif;
-      color: var(--text-color);
+      background: transparent;
+      overflow: hidden;
     }
 
-    #countdown {
-      font-size: var(--font-size);
-      line-height: 1;
+    #timer {
+      font-family: "PricedownOBS", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+      font-size: var(--base-font-size);
+      line-height: 0.85;
       letter-spacing: var(--letter-spacing);
+      color: var(--text-color);
       white-space: nowrap;
       text-align: center;
       text-transform: uppercase;
-      paint-order: stroke fill;
+      transform-origin: center center;
       -webkit-text-stroke: var(--text-stroke);
       text-shadow: var(--shadow);
-      font-variant-numeric: tabular-nums;
+      will-change: transform;
       user-select: none;
-    }
-
-    .expired {
-      opacity: 1;
     }
   </style>
 </head>
+
 <body>
-  <main id="countdown" aria-live="polite">Loading...</main>
+  <main id="stage" aria-label="Countdown timer">
+    <div id="timer">Loading countdown...</div>
+  </main>
 
   <script>
-    // Detroit / Eastern Time on Nov 18, 2026 is UTC-05:00.
+    // Countdown target:
+    // November 18, 2026 at 11:59 PM Eastern/Detroit time.
     const TARGET_TIME = new Date("2026-11-18T23:59:00-05:00").getTime();
 
-    const countdownEl = document.getElementById("countdown");
+    const stage = document.getElementById("stage");
+    const timer = document.getElementById("timer");
 
-    function pad(value) {
-      return String(value).padStart(2, "0");
+    function pad2(number) {
+      return String(number).padStart(2, "0");
     }
 
-    function updateCountdown() {
+    function getCountdownText() {
       const now = Date.now();
       let remaining = TARGET_TIME - now;
 
       if (remaining <= 0) {
-        countdownEl.textContent = "00 DAYS 00 HOURS 00 MINUTES 00 SECONDS";
-        countdownEl.classList.add("expired");
-        return;
+        return "00 DAYS 00 HOURS 00 MINUTES 00 SECONDS";
       }
 
       const totalSeconds = Math.floor(remaining / 1000);
@@ -88,11 +98,48 @@
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
 
-      countdownEl.textContent = `${days} DAYS ${pad(hours)} HOURS ${pad(minutes)} MINUTES ${pad(seconds)} SECONDS`;
+      return `${days} DAYS ${pad2(hours)} HOURS ${pad2(minutes)} MINUTES ${pad2(seconds)} SECONDS`;
     }
 
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
+    function fitTimerToWindow() {
+      // Reset first so scrollWidth/scrollHeight measure the natural text size.
+      timer.style.transform = "scale(1)";
+
+      const stageRect = stage.getBoundingClientRect();
+      const availableWidth = Math.max(1, stageRect.width - 2);
+      const availableHeight = Math.max(1, stageRect.height - 2);
+
+      const textWidth = Math.max(1, timer.scrollWidth);
+      const textHeight = Math.max(1, timer.scrollHeight);
+
+      const scale = Math.min(
+        availableWidth / textWidth,
+        availableHeight / textHeight
+      );
+
+      timer.style.transform = `scale(${scale})`;
+    }
+
+    function updateTimer() {
+      timer.textContent = getCountdownText();
+      requestAnimationFrame(fitTimerToWindow);
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 250);
+
+    window.addEventListener("resize", fitTimerToWindow);
+
+    if ("ResizeObserver" in window) {
+      new ResizeObserver(fitTimerToWindow).observe(stage);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        updateTimer();
+        fitTimerToWindow();
+      });
+    }
   </script>
 </body>
 </html>
